@@ -21,11 +21,9 @@ describe('generateDirs()', function() {
 		console.log(dirs);
 		expect(dirs).to.eql({
 			newUrl: 'url("../../fonts/fonts/font1.woff?a=123")',
-			assetFromAbs: 'C:\\gulp-css-useref\\test\\fonts\\font1.woff',
-			newAssetFile: 'fonts\\fonts\\font1.woff',
-			newAssetFileAbs: 'C:\\gulp-css-useref\\fonts\\fonts\\font1.woff'
+			assetPath: '..\\fonts\\font1.woff',
+			newAssetFile: 'fonts\\fonts\\font1.woff'
 		});
-		expect(path.relative('.', dirs.newAssetFileAbs)).to.equal('fonts\\fonts\\font1.woff');
 	});
 
 	it('should work with a CSS file with a heirarchy of 2 directories in it\'s relative path', function(done) {
@@ -36,7 +34,7 @@ describe('generateDirs()', function() {
 				var dirs = generateDirs(cssFile.path, cssFile.relative, '../fonts/font1.woff?a=123', { base: 'fonts'});
 				console.log(dirs)
 				expect(dirs.newUrl).to.equal('url("../../fonts/fonts/font1.woff?a=123")');
-				expect(dirs.assetFromAbs).to.equal(path.resolve(path.dirname(cssFile.path), '../fonts/font1.woff'));
+				expect(dirs.assetPath).to.equal('..\\fonts\\font1.woff');
 				expect(dirs.newAssetFile).to.equal(path.normalize('fonts/fonts/font1.woff'));
 				callback();
 			}, function (cb) {
@@ -53,7 +51,7 @@ describe('generateDirs()', function() {
 				var dirs = generateDirs(cssFile.path, cssFile.relative, '../fonts/font1.woff?a=123', { base: 'fonts'});
 				console.log(dirs)
 				expect(dirs.newUrl).to.equal('url("../fonts/fonts/font1.woff?a=123")');
-				expect(dirs.assetFromAbs).to.equal(path.resolve(path.dirname(cssFile.path), '../fonts/font1.woff'));
+				expect(dirs.assetPath).to.equal('..\\fonts\\font1.woff');
 				expect(dirs.newAssetFile).to.equal(path.normalize('fonts/fonts/font1.woff'));
 				callback();
 			}, function (cb) {
@@ -72,7 +70,7 @@ describe('generateDirs()', function() {
 				var dirs = generateDirs(cssFile.path, cssFile.relative, 'fonts/font1.woff?a=123', { base: 'fonts'});
 				console.log(dirs)
 				expect(dirs.newUrl).to.equal('url("fonts/fonts/font1.woff?a=123")');
-				expect(dirs.assetFromAbs).to.equal(path.resolve(path.dirname(cssFile.path), 'fonts/font1.woff'));
+				expect(dirs.assetPath).to.equal('fonts\\font1.woff');
 				expect(dirs.newAssetFile).to.equal(path.normalize('fonts/fonts/font1.woff'));
 				callback();
 			}, function (cb) {

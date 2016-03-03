@@ -54,8 +54,14 @@ function processUrlDecls(file, options) {
 
 			var dirs = generateDirs(file.path, file.relative, urlMatch, options);
 			var newUrl = dirs.newUrl;
-			var assetFromAbs = dirs.assetFromAbs;
+			var assetPath = dirs.assetPath;
 			var newAssetFile = dirs.newAssetFile;
+
+			var assetFromAbs = path.resolve(path.dirname(file.path), assetPath);
+
+			var cssBaseDirAbs = cssFilePathAbs.substr(0, cssFilePathAbs.length - cssFilePathRel.length);
+			var newAssetFileAbs = path.join(cssBaseDirAbs, newAssetFile);
+
 
 			var cssFromDirAbs = path.dirname(file.path);
 
@@ -69,8 +75,9 @@ function processUrlDecls(file, options) {
 			}
 
 			var asset = new gutil.File({
-				base: cssFromDirAbs,
-				path: newAssetFile,
+				cwd: file.cwd
+				base: file.base,
+				path: newAssetFileAbs,
 				contents: contents
 			});
 			this.push(asset);

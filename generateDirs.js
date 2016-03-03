@@ -35,8 +35,6 @@ function generateDirs(cssFilePathAbs, cssFilePathRel, urlMatch, options) {
 	//   urlMatch         = '../../images/foo.png?a=123'
 	//   options.base     = 'assets'
 
-	var cssBaseDirAbs = cssFilePathAbs.substr(0, cssFilePathAbs.length - cssFilePathRel.length);
-	console.log('q',cssBaseDirAbs)
 	// '\path\to\project\src\css\page\'
 	var cssFromDirAbs = path.dirname(path.resolve(cssFilePathAbs));
 	// 'css\page'
@@ -54,8 +52,6 @@ function generateDirs(cssFilePathAbs, cssFilePathRel, urlMatch, options) {
 
 
 	// '\path\to\project\src'
-	console.log('k',assetFromDirAbs, cssFromDirAbs);
-	console.log('l', getCommonBaseDir(assetFromDirAbs, cssFromDirAbs));
 	var fromBaseDirAbs = getCommonBaseDir(assetFromDirAbs, cssFromDirAbs);
 	// 'images'
 	var assetPathPart = path.relative(fromBaseDirAbs, assetFromDirAbs);
@@ -63,8 +59,6 @@ function generateDirs(cssFilePathAbs, cssFilePathRel, urlMatch, options) {
 	var newAssetPath = path.join(options.base, assetPathPart);
 	// 'assets\images\foo.png'
 	var newAssetFile = path.join(newAssetPath, assetBasename);
-
-	console.log('z',getCommonBaseDir('C:\\gulp-css-useref\\test\\fixtures\\01.css', 'test\\fixtures\\01.css'));
 
 	// console.log(cssFromDirAbs, cssFromDirRel, assetUrlParsed, assetPath, assetFromAbs, assetBasename, assetFromDirAbs, fromBaseDirAbs, assetPathPart, newAssetPath, newAssetFile);
 
@@ -88,8 +82,7 @@ function generateDirs(cssFilePathAbs, cssFilePathRel, urlMatch, options) {
 	// Return the new url() string
 	return {
 		newUrl: newUrl,
-		assetFromAbs: assetFromAbs,
-		newAssetFile: newAssetFile,
-		newAssetFileAbs: path.join(cssBaseDirAbs, options.base, assetPathPart, assetBasename)
+		assetPath: assetPath,
+		newAssetFile: newAssetFile
 	};
 }

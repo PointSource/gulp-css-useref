@@ -1,0 +1,35 @@
+{
+  "name": "gulp-css-useref",
+  "version": "0.0.1",
+  "description": "Gulp plugin to parse CSS and add referenced fonts to the stream",
+  "main": "index.js",
+  "author": "Andre Asselin <andre.asselin@pointsource.com>",
+  "contributors": [
+    "Andre Asselin <andre.asselin@pointsource.com>"
+  ],
+  "files": [
+    "*"
+  ],
+  "keywords": [
+    "gulpplugin",
+    "css",
+    "fonts"
+  ],
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "gulp-util": "^3.0.7",
+    "micromatch": "^2.3.7",
+    "through2": "^2.0.1"
+  },
+  "repository": "PointSource/gulp-css-useref",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "*",
+    "gulp": "^3.9.1",
+    "mocha": "*",
+    "mocha-clean": "^1.0.0",
+    "through2": "^2.0.1"
+  }
+}

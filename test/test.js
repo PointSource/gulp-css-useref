@@ -14,10 +14,19 @@ describe('generateDirs()', function() {
 	this.timeout(5000);
 
 	it('should work with a CSS file with a heirarchy of 2 directories in it\'s relative path', function() {
-		console.log('x',path.relative('C:\\gulp-css-useref\\test\\fixtures\\01.css', 'test\\fixtures\\01.css'));
-		console.log('x2',path.relative('test\\fixtures\\01.css', 'C:\\gulp-css-useref\\test\\fixtures\\01.css'));
-		console.log('y',path.resolve('.'), path.resolve('C:\\gulp-css-useref\\test\\fixtures\\01.css', 'test\\fixtures\\01.css'));
-		var dirs = generateDirs('C:\\gulp-css-useref\\test\\fixtures\\01.css', 'test\\fixtures\\01.css', '../fonts/font1.woff?a=123', { base: 'fonts'});
+		console.log('', 'css\\page\\home.css', '../../images/foo.png?a=123', { base: 'assets'});
+		var dirs = generateDirs('css\\page\\home.css', '../../images/foo.png?a=123', { base: 'assets'});
+		console.log(dirs);
+		expect(dirs).to.eql({
+			newUrl: 'url("../../assets/images/foo.png?a=123")',
+			assetPath: '..\\..\\images\\foo.png',
+			newAssetFile: 'assets\\images\\foo.png'
+		});
+	});
+
+	it('should work with a CSS file with a heirarchy of 2 directories in it\'s relative path', function() {
+		console.log('C:\\gulp-css-useref\\test\\fixtures\\01.css', 'test\\fixtures\\01.css', '../fonts/font1.woff?a=123', { base: 'fonts'});
+		var dirs = generateDirs('test\\fixtures\\01.css', '../fonts/font1.woff?a=123', { base: 'fonts'});
 		console.log(dirs);
 		expect(dirs).to.eql({
 			newUrl: 'url("../../fonts/fonts/font1.woff?a=123")',
@@ -31,7 +40,7 @@ describe('generateDirs()', function() {
 			.pipe(through.obj(function(cssFile, enc, callback) {
 				console.log(cssFile.cwd, cssFile.base, cssFile.path, cssFile.relative)
 				console.log(path.resolve(cssFile.cwd, cssFile.base));
-				var dirs = generateDirs(cssFile.path, cssFile.relative, '../fonts/font1.woff?a=123', { base: 'fonts'});
+				var dirs = generateDirs(cssFile.relative, '../fonts/font1.woff?a=123', { base: 'fonts'});
 				console.log(dirs)
 				expect(dirs.newUrl).to.equal('url("../../fonts/fonts/font1.woff?a=123")');
 				expect(dirs.assetPath).to.equal('..\\fonts\\font1.woff');
@@ -48,7 +57,7 @@ describe('generateDirs()', function() {
 			.pipe(through.obj(function(cssFile, enc, callback) {
 				console.log(cssFile.cwd, cssFile.base, cssFile.path, cssFile.relative)
 				console.log(path.resolve(cssFile.cwd, cssFile.base));
-				var dirs = generateDirs(cssFile.path, cssFile.relative, '../fonts/font1.woff?a=123', { base: 'fonts'});
+				var dirs = generateDirs(cssFile.relative, '../fonts/font1.woff?a=123', { base: 'fonts'});
 				console.log(dirs)
 				expect(dirs.newUrl).to.equal('url("../fonts/fonts/font1.woff?a=123")');
 				expect(dirs.assetPath).to.equal('..\\fonts\\font1.woff');
@@ -67,7 +76,7 @@ describe('generateDirs()', function() {
 				console.log(cssFile.cwd, cssFile.base, cssFile.path, cssFile.relative);
 				console.log(path.resolve(path.dirname(cssFile.path), 'fonts/font1.woff'));
 				console.log('--------------')
-				var dirs = generateDirs(cssFile.path, cssFile.relative, 'fonts/font1.woff?a=123', { base: 'fonts'});
+				var dirs = generateDirs(cssFile.relative, 'fonts/font1.woff?a=123', { base: 'fonts'});
 				console.log(dirs)
 				expect(dirs.newUrl).to.equal('url("fonts/fonts/font1.woff?a=123")');
 				expect(dirs.assetPath).to.equal('fonts\\font1.woff');

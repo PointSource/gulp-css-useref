@@ -52,7 +52,7 @@ function processUrlDecls(file, options) {
 			if (options.match && !micromatch.isMatch(urlMatch, options.match)
 				return fullMatch;
 
-			var dirs = generateDirs(file.path, file.relative, urlMatch, options);
+			var dirs = generateDirs(file.relative, urlMatch, options);
 			var newUrl = dirs.newUrl;
 			var assetPath = dirs.assetPath;
 			var newAssetFile = dirs.newAssetFile;

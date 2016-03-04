@@ -28,43 +28,40 @@ function getCommonBaseDir(a, b) {
 }
 
 
-function generateDirs(cssFilePathAbs, cssFilePathRel, urlMatch, options) {
+function generateDirs(cssFilePathRel, urlMatch, options) {
 	// Example:
-	//   cssFilePathAbs   = '\path\to\project\src\css\page\home.css'
 	//   cssFilePathRel   = 'page\home.css'
 	//   urlMatch         = '../../images/foo.png?a=123'
 	//   options.base     = 'assets'
 
-	// '\path\to\project\src\css\page\'
-	var cssFromDirAbs = path.dirname(path.resolve(cssFilePathAbs));
 	// 'css\page'
 	var cssFromDirRel = path.dirname(cssFilePathRel);
 	// assetUrlParsed.pathname = '../../images/foo.png'
 	var assetUrlParsed = url.parse(urlMatch);
-	// assetPath = '..\..\images\foo.png'
+	// '..\..\images\foo.png'
 	var assetPath = assetUrlParsed.pathname.replace(/\//g, path.sep);
-	// '\path\to\project\src\images\foo.png'
-	var assetFromAbs = path.resolve(cssFromDirAbs, assetPath);
+	// 'images\foo.png'
+	var assetFromRel = path.join(cssFromDirRel, assetPath);
 	// 'foo.png'
-	var assetBasename = path.basename(assetPath);
-	// '\path\to\project\src\images'
-	var assetFromDirAbs = path.dirname(assetFromAbs);
-
-
-	// '\path\to\project\src'
-	var fromBaseDirAbs = getCommonBaseDir(assetFromDirAbs, cssFromDirAbs);
+	var assetBasename = path.basename(assetFromRel);
 	// 'images'
-	var assetPathPart = path.relative(fromBaseDirAbs, assetFromDirAbs);
+	var assetFromDirRel = path.dirname(assetFromRel);
+
+
+	// '\'
+	var fromBaseDirRel = getCommonBaseDir(assetFromDirRel, cssFromDirRel);
+	// 'images'
+	var assetPathPart = path.relative(fromBaseDirRel, assetFromDirRel);
 	// 'assets\images'
 	var newAssetPath = path.join(options.base, assetPathPart);
 	// 'assets\images\foo.png'
 	var newAssetFile = path.join(newAssetPath, assetBasename);
 
-	// console.log(cssFromDirAbs, cssFromDirRel, assetUrlParsed, assetPath, assetFromAbs, assetBasename, assetFromDirAbs, fromBaseDirAbs, assetPathPart, newAssetPath, newAssetFile);
+	// console.log(cssFromDirRel, assetPath, assetFromRel, assetBasename, assetFromDirRel, fromBaseDirRel, assetPathPart, newAssetPath, newAssetFile);
 
 	// Call user-defined function
 	if (options.pathTransform) {
-		newAssetFile = options.pathTransform(newAssetFile, cssFilePathAbs, cssFilePathRel, urlMatch, options);
+		newAssetFile = options.pathTransform(newAssetFile, cssFilePathRel, urlMatch, options);
 		newAssetPath = path.dirname(newAssetFile);
 		assetBasename = path.basename(newAssetFile);
 	}

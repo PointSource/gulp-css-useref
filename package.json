@@ -28,8 +28,10 @@
   "devDependencies": {
     "chai": "*",
     "gulp": "^3.9.1",
+    "lodash": "^4.6.1",
     "mocha": "*",
     "mocha-clean": "^1.0.0",
+    "mockery": "github:pointsource/mockery",
     "through2": "^2.0.1"
   }
 }

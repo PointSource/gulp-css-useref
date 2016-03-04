@@ -8,6 +8,7 @@ var generateDirs = require('./generateDirs');
 
 module.exports = function(options) {
 	var options = options || {};
+	options.base = options.base || '';
 
 	return through.obj(function(file, cb) {
 		var files;

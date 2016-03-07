@@ -1,6 +1,7 @@
 'use strict';
 
 var fs = require('fs');
+var path = require('path');
 var through = require('through2');
 var gutil = require('gulp-util');
 var micromatch = require('micromatch');
@@ -10,7 +11,7 @@ module.exports = function(options) {
 	var options = options || {};
 	options.base = options.base || '';
 
-	return through.obj(function(file, cb) {
+	return through.obj(function(file, enc, cb) {
 		var files;
 
 		if (file.isNull())
@@ -19,7 +20,8 @@ module.exports = function(options) {
 		if (file.isStream())
 			return cb(new gutil.PluginError('gulp-css-useref', 'Streaming not supported'));
 
-		processUrlDecls.call(this, file, options);
+		var newContents = processUrlDecls.call(this, file, options);
+		file.contents = new Buffer(newContents);
 
 		// Push the updated CSS file through.
 		this.push(file);
@@ -29,10 +31,27 @@ module.exports = function(options) {
 };
 
 
+/**
+ * Trims whitespace and quotes from css 'url()' values
+ *
+ * @param {string} value - string to trim
+ * @returns {string} - the trimmed string
+ */
+function trimUrlValue(value) {
+    var beginSlice, endSlice;
+    value = value.trim();
+    beginSlice = value.charAt(0) === '\'' || value.charAt(0) === '"' ? 1 : 0;
+    endSlice = value.charAt(value.length - 1) === '\'' ||
+        value.charAt(value.length - 1) === '"' ?
+        -1 : undefined;
+    return value.slice(beginSlice, endSlice).trim();
+}
+
+
 function processUrlDecls(file, options) {
 	// Replace 'url()' parts of Declaration
-	file.contents = file.contents.toString().replace(/url\((.*?)\)/g,
-		function (fullMatch, urlMatch) {
+	return file.contents.toString().replace(/url\((.*?)\)/g,
+		function(fullMatch, urlMatch) {
 			// Example:
 			//   fullMatch		  = 'url("../../images/foo.png?a=123");'
 			//   urlMatch         = '"../../images/foo.png?a=123"'
@@ -50,7 +69,7 @@ function processUrlDecls(file, options) {
 				return fullMatch;
 			}
 
-			if (options.match && !micromatch.isMatch(urlMatch, options.match)
+			if (options.match && !micromatch.isMatch(urlMatch, options.match))
 				return fullMatch;
 
 			var dirs = generateDirs(file.relative, urlMatch, options);
@@ -60,7 +79,7 @@ function processUrlDecls(file, options) {
 
 			var assetFromAbs = path.resolve(path.dirname(file.path), assetPath);
 
-			var cssBaseDirAbs = cssFilePathAbs.substr(0, cssFilePathAbs.length - cssFilePathRel.length);
+			var cssBaseDirAbs = file.path.substr(0, file.path.length - file.relative.length);
 			var newAssetFileAbs = path.join(cssBaseDirAbs, newAssetFile);
 
 
@@ -76,7 +95,7 @@ function processUrlDecls(file, options) {
 			}
 
 			var asset = new gutil.File({
-				cwd: file.cwd
+				cwd: file.cwd,
 				base: file.base,
 				path: newAssetFileAbs,
 				contents: contents

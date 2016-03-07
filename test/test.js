@@ -1,13 +1,18 @@
 /* eslint-disable */
 /* global describe, it */
 'use strict';
+var fs = require('fs');
 var path = require('path');
 var chai = require('chai');
 var expect = chai.expect;
 var gulp = require('gulp');
+var gutil = require('gulp-util');
 var through = require('through2');
 var mockery = require('mockery');
 var _ = require('lodash');
+var gulpUseCssUseRef = require('../index');
+
+chai.use(require('chai-things'));
 
 chai.config.includeStack = false;
 
@@ -109,131 +114,308 @@ function generateTestData(sep) {
 }
 
 
-before(function() {
-	mockery.enable({
-		warnOnReplace: true
-	});
-});
-
-after(function() {
-	mockery.disable();
-});
-
-describe('generateDirs() with OS local paths', function() {
-	var generateDirs;
-
-	var localTestData = generateTestData(path.sep);
-
+describe('generateDirs()', function() {
 	before(function() {
-		mockery.registerAllowables(['url', '../generateDirs'], true);
-		mockery.registerMock('path', path);
-		generateDirs = require('../generateDirs');
+		mockery.enable({
+			warnOnReplace: true
+		});
 	});
 
 	after(function() {
-		mockery.deregisterAll();
+		mockery.disable();
 	});
 
-	localTestData.forEach(function(testItem) {
-		it(testItem.it, function() {
-			var dirs = generateDirs.apply(global, testItem.args);
-			expect(dirs).to.eql(testItem.res);
+	describe('with OS local paths', function() {
+		var generateDirs;
+
+		var localTestData = generateTestData(path.sep);
+
+		before(function() {
+			mockery.registerAllowables(['url', '../generateDirs'], true);
+			mockery.registerMock('path', path);
+			generateDirs = require('../generateDirs');
+		});
+
+		after(function() {
+			mockery.deregisterAll();
+		});
+
+		localTestData.forEach(function(testItem) {
+			it(testItem.it, function() {
+				var dirs = generateDirs.apply(global, testItem.args);
+				expect(dirs).to.eql(testItem.res);
+			});
+		});
+
+		it('should work with a pathTransform function', function() {
+			var incssFilePathReldirs = 'css\\page\\home.css';
+			var inurlMatch = '../../images/foo.png?a=123';
+			var inoptions = {
+				base: 'assets',
+				pathTransform: function(newAssetFile, cssFilePathRel, urlMatch, options) {
+					expect(newAssetFile).to.equal('assets\\images\\foo.png');
+					expect(cssFilePathRel).to.equal(incssFilePathReldirs);
+					expect(urlMatch).to.equal(inurlMatch);
+					expect(options).to.eql(inoptions);
+					return "totally" + path.sep + "different" + path.sep + "file.png";
+				}
+			};
+
+			var dirs = generateDirs(incssFilePathReldirs, inurlMatch, inoptions);
+			expect(dirs).to.eql({
+				newUrl: 'url("../../totally/different/file.png?a=123")',
+				assetPath: '..' + path.sep + '..' + path.sep + 'images' + path.sep + 'foo.png',
+				newAssetFile: 'totally' + path.sep + 'different' + path.sep + 'file.png'
+			});
 		});
 	});
 
-	it('should work with a pathTransform function', function() {
-		var incssFilePathReldirs = 'css\\page\\home.css';
-		var inurlMatch = '../../images/foo.png?a=123';
-		var inoptions = {
-			base: 'assets',
-			pathTransform: function(newAssetFile, cssFilePathRel, urlMatch, options) {
-				expect(newAssetFile).to.equal('assets\\images\\foo.png');
-				expect(cssFilePathRel).to.equal(incssFilePathReldirs);
-				expect(urlMatch).to.equal(inurlMatch);
-				expect(options).to.eql(inoptions);
-				return "totally" + path.sep + "different" + path.sep + "file.png";
-			}
-		};
+	describe('with posix paths', function() {
+		var generateDirs;
 
-		var dirs = generateDirs(incssFilePathReldirs, inurlMatch, inoptions);
-		expect(dirs).to.eql({
-			newUrl: 'url("../../totally/different/file.png?a=123")',
-			assetPath: '..' + path.sep + '..' + path.sep + 'images' + path.sep + 'foo.png',
-			newAssetFile: 'totally' + path.sep + 'different' + path.sep + 'file.png'
+		var localTestData = generateTestData(path.posix.sep);
+
+		before(function() {
+			mockery.registerAllowables(['url', '../generateDirs'], true);
+
+			var posixPath = _.extend({}, path.posix);
+			posixPath.posix = path.posix;
+			posixPath.win32 = path.win32;
+			mockery.registerMock('path', posixPath);
+
+			generateDirs = require('../generateDirs');
+		});
+
+		after(function() {
+			mockery.deregisterAll();
+		});
+
+		localTestData.forEach(function(testItem) {
+			it(testItem.it, function() {
+				var dirs = generateDirs.apply(global, testItem.args);
+				expect(dirs).to.eql(testItem.res);
+			});
+		});
+	});
+
+
+	describe('with win32 paths', function() {
+		var generateDirs;
+
+		var localTestData = generateTestData(path.win32.sep);
+
+		before(function() {
+			mockery.registerAllowables(['url', '../generateDirs'], true);
+
+			var win32Path = _.extend({}, path.win32);
+			win32Path.posix = path.posix;
+			win32Path.win32 = path.win32;
+			mockery.registerMock('path', win32Path);
+
+			generateDirs = require('../generateDirs');
+		});
+
+		after(function() {
+			mockery.deregisterAll();
+		});
+
+		localTestData.forEach(function(testItem) {
+			it(testItem.it, function() {
+				var dirs = generateDirs.apply(global, testItem.args);
+				expect(dirs).to.eql(testItem.res);
+			});
 		});
 	});
 });
 
-describe('generateDirs() with posix paths', function() {
-	var generateDirs;
 
-	var localTestData = generateTestData(path.posix.sep);
+function getExpected(filePath) {
+	return fs.readFileSync(filePath).toString();
+}
 
-	before(function() {
-		mockery.registerAllowables(['url', '../generateDirs'], true);
-
-		var posixPath = _.extend({}, path.posix);
-		posixPath.posix = path.posix;
-		posixPath.win32 = path.win32;
-		mockery.registerMock('path', posixPath);
-
-		generateDirs = require('../generateDirs');
-	});
-
-	after(function() {
-		mockery.deregisterAll();
-	});
-
-	localTestData.forEach(function(testItem) {
-		it(testItem.it, function() {
-			var dirs = generateDirs.apply(global, testItem.args);
-			expect(dirs).to.eql(testItem.res);
-		});
-	});
-});
+function compare(name, expectedName, done) {
+	gulp.src(name)
+		.pipe(gulpUseCssUseRef({ base: 'fixtures' }))
+		.pipe(through.obj(function(file, enc, callback) {
+	        if (path.basename(file.path) === path.basename(name))
+	            expect(getExpected(expectedName)).to.equal(file.contents.toString());
+			callback();
+		}, function(cb) {
+			done();
+			cb();
+		}));
+}
 
 
-describe('generateDirs() with win32 paths', function() {
-	var generateDirs;
+describe('gulp-use-css filter', function() {
+    this.timeout(5000);
 
-	var localTestData = generateTestData(path.win32.sep);
+    it('file should pass a non-CSS file through unchanged', function(done) {
+        compare('test/fixtures/1/jsfile.js', 'test/fixtures/1/jsfile.js', done);
+    });
 
-	before(function() {
-		mockery.registerAllowables(['url', '../generateDirs'], true);
+    it('should let null files pass through', function(done) {
+        var stream = gulpUseCssUseRef();
 
-		var win32Path = _.extend({}, path.win32);
-		win32Path.posix = path.posix;
-		win32Path.win32 = path.win32;
-		mockery.registerMock('path', win32Path);
+        stream.pipe(through.obj(function(file, enc, callback) {
+            expect(file.path).to.equal('null.css');
+            expect(file.contents).to.equal(null);
+            callback();
+        }, function(callback) {
+            done();
+            callback();
+        }));
 
-		generateDirs = require('../generateDirs');
-	});
+        stream.write(new gutil.File({
+            path: 'null.css',
+            contents: null
+         }));
 
-	after(function() {
-		mockery.deregisterAll();
-	});
+        stream.end();
+    });
 
-	localTestData.forEach(function(testItem) {
-		it(testItem.it, function() {
-			var dirs = generateDirs.apply(global, testItem.args);
-			expect(dirs).to.eql(testItem.res);
-		});
-	});
-});
+    it('should emit error on streamed file', function (done) {
+        gulp.src(path.join('test/fixtures/1/css/dupasset.css'), { buffer: false })
+            .pipe(gulpUseCssUseRef())
+            .on('error', function (err) {
+                expect(err.message).to.equal('Streaming not supported');
+                done();
+            });
+    });
 
-xdescribe('gulp-use-css filter', function() {
-	it('should work with a CSS file who\'s relative path doesn\'t have a directory', function(done) {
-		gulp.src(path.join('test/fixtures/01.css'), { buffer: false })
-			.pipe(through.obj(function(cssFile, enc, callback) {
-				console.log(cssFile.cwd, cssFile.base, cssFile.path, cssFile.relative);
-				console.log(path.resolve(path.dirname(cssFile.path), 'fonts/font1.woff'));
-				var dirs = generateDirs(cssFile.relative, 'fonts/font1.woff?a=123', { base: 'fonts'});
-				console.log(dirs)
-				expect(dirs.newUrl).to.equal('url("fonts/fonts/font1.woff?a=123")');
-				expect(dirs.assetPath).to.equal('fonts\\font1.woff');
-				expect(dirs.newAssetFile).to.equal(path.normalize('fonts/fonts/font1.woff'));
+	it('should handle not having an options object', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef())
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
 				callback();
-			}, function (cb) {
+			}, function(cb) {
+				expect(files).to.have.lengthOf(2);
+				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+				expect(cssFile).to.not.be.undefined;
+	            expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+				done();
+				cb();
+			}));
+	});
+
+	it('should handle having an options object with a null base', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef({ base: null }))
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
+				callback();
+			}, function(cb) {
+				expect(files).to.have.lengthOf(2);
+				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+				expect(cssFile).to.not.be.undefined;
+	            expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+				done();
+				cb();
+			}));
+	});
+
+	it('should handle having an options object with an empty string base', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef({ base: '' }))
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
+				callback();
+			}, function(cb) {
+				expect(files).to.have.lengthOf(2);
+				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+				expect(cssFile).to.not.be.undefined;
+	            expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+				done();
+				cb();
+			}));
+	});
+
+	it('should handle having an options object with a base that has a single level directory', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef({ base: 'foo' }))
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
+				callback();
+			}, function(cb) {
+				expect(files).to.have.lengthOf(2);
+				expect(files).to.contain.something.that.has.property('relative', 'foo\\fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+				expect(cssFile).to.not.be.undefined;
+	            expect(getExpected('test/expected/onelevel.css')).to.equal(cssFile.contents.toString());
+				done();
+				cb();
+			}));
+	});
+
+	it('should handle having an options object with a base that has a 2 levels of directories', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef({ base: 'foo/bar' }))
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
+				callback();
+			}, function(cb) {
+				expect(files).to.have.lengthOf(2);
+				expect(files).to.contain.something.that.has.property('relative', 'foo\\bar\\fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+				expect(cssFile).to.not.be.undefined;
+	            expect(getExpected('test/expected/twolevels.css')).to.equal(cssFile.contents.toString());
+				done();
+				cb();
+			}));
+	});
+
+	it('shouldn\'t return duplicate assets', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/dupasset.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef())
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
+				callback();
+			}, function(cb) {
+				expect(files).to.have.lengthOf(2);
+				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\dupasset.css');
+				var cssFile = _.find(files, _.matches({relative: 'css\\dupasset.css'}));
+				expect(cssFile).to.not.be.undefined;
+	            expect(getExpected('test/expected/dupasset.css')).to.equal(cssFile.contents.toString());
+				done();
+				cb();
+			}));
+	});
+
+	it('should handle distinct assets on multiple lines', function(done) {
+		var files = [];
+
+		gulp.src(path.normalize('test/fixtures/1/css/multiassetmultiline.css'), { base: 'test/fixtures/1' })
+			.pipe(gulpUseCssUseRef())
+			.pipe(through.obj(function(file, enc, callback) {
+				files.push(file);
+				callback();
+			}, function(cb) {
+				expect(files).to.have.lengthOf(3);
+				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.woff2');
+				expect(files).to.contain.something.that.has.property('relative', 'css\\multiassetmultiline.css');
 				done();
 				cb();
 			}));

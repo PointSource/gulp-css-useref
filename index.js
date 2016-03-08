@@ -6,6 +6,7 @@ var through = require('through2');
 var gutil = require('gulp-util');
 var micromatch = require('micromatch');
 var generateDirs = require('./generateDirs');
+var _ = require('lodash');
 
 module.exports = function(options) {
 	var options = options || {};
@@ -49,8 +50,10 @@ function trimUrlValue(value) {
 
 
 function processUrlDecls(file, options) {
+	var files = [];
+
 	// Replace 'url()' parts of Declaration
-	return file.contents.toString().replace(/url\((.*?)\)/g,
+	var newCssFileContents = file.contents.toString().replace(/url\((.*?)\)/g,
 		function(fullMatch, urlMatch) {
 			// Example:
 			//   fullMatch		  = 'url("../../images/foo.png?a=123");'
@@ -100,10 +103,18 @@ function processUrlDecls(file, options) {
 				path: newAssetFileAbs,
 				contents: contents
 			});
-			this.push(asset);
+			files.push(asset);
 
 			// Return the new url() string
 			return newUrl;
 		}.bind(this)
 	);
+
+	files = _.uniqBy(files, 'relative');
+
+	files.forEach(function(file) {
+		this.push(file);
+	}, this);
+
+	return newCssFileContents;
 }

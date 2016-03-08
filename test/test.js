@@ -4,13 +4,13 @@
 var fs = require('fs');
 var path = require('path');
 var chai = require('chai');
+var sinon = require('sinon');
 var expect = chai.expect;
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var through = require('through2');
 var mockery = require('mockery');
 var _ = require('lodash');
-var gulpUseCssUseRef = require('../index');
 
 chai.use(require('chai-things'));
 
@@ -116,9 +116,7 @@ function generateTestData(sep) {
 
 describe('generateDirs()', function() {
 	before(function() {
-		mockery.enable({
-			warnOnReplace: true
-		});
+		mockery.enable();
 	});
 
 	after(function() {
@@ -229,61 +227,99 @@ describe('generateDirs()', function() {
 });
 
 
+describe('appropriate warnings', function() {
+	var mockedGutil;
+	before(function() {
+		mockery.enable({
+			warnOnUnregistered: false
+		});
+		mockery.registerAllowables(['../index'], true);
+
+		mockedGutil = _.extend({}, gutil);
+		mockedGutil.log = sinon.spy();
+		mockery.registerMock('gulp-util', mockedGutil);
+	});
+
+	after(function() {
+		mockery.deregisterAll();
+		mockery.disable();
+	});
+
+	it('should log a warning when an asset isn\'t found', function(done) {
+		var gulpUseCssUseRef = require('../index');
+
+		gulp.src(path.join('test/fixtures/1/css/assetnotfound.css'))
+			.pipe(gulpUseCssUseRef())
+			.pipe(through.obj(function(file, enc, callback) {
+				callback();
+			}, function(cb) {
+				expect(mockedGutil.log.called).to.be.true;
+				done();
+				cb();
+			}));
+	});
+});
+
 function getExpected(filePath) {
 	return fs.readFileSync(filePath).toString();
 }
 
-function compare(name, expectedName, done) {
-	gulp.src(name)
-		.pipe(gulpUseCssUseRef({ base: 'fixtures' }))
-		.pipe(through.obj(function(file, enc, callback) {
-	        if (path.basename(file.path) === path.basename(name))
-	            expect(getExpected(expectedName)).to.equal(file.contents.toString());
-			callback();
-		}, function(cb) {
-			done();
-			cb();
-		}));
-}
-
 
 describe('gulp-use-css filter', function() {
-    this.timeout(5000);
+	var gulpUseCssUseRef;
+	before(function() {
+		gulpUseCssUseRef = require('../index');
+	});
 
-    it('file should pass a non-CSS file through unchanged', function(done) {
-        compare('test/fixtures/1/jsfile.js', 'test/fixtures/1/jsfile.js', done);
-    });
+	function compare(name, expectedName, done) {
+		gulp.src(name)
+			.pipe(gulpUseCssUseRef({ base: 'fixtures' }))
+			.pipe(through.obj(function(file, enc, callback) {
+				if (path.basename(file.path) === path.basename(name))
+					expect(getExpected(expectedName)).to.equal(file.contents.toString());
+				callback();
+			}, function(cb) {
+				done();
+				cb();
+			}));
+	}
 
-    it('should let null files pass through', function(done) {
-        var stream = gulpUseCssUseRef();
+	this.timeout(5000);
 
-        stream.pipe(through.obj(function(file, enc, callback) {
-            expect(file.path).to.equal('null.css');
-            expect(file.contents).to.equal(null);
-            callback();
-        }, function(callback) {
-            done();
-            callback();
-        }));
+	it('file should pass a non-CSS file through unchanged', function(done) {
+		compare('test/fixtures/1/jsfile.js', 'test/fixtures/1/jsfile.js', done);
+	});
 
-        stream.write(new gutil.File({
-            path: 'null.css',
-            contents: null
-         }));
+	it('should let null files pass through', function(done) {
+		var stream = gulpUseCssUseRef();
 
-        stream.end();
-    });
+		stream.pipe(through.obj(function(file, enc, callback) {
+			expect(file.path).to.equal('null.css');
+			expect(file.contents).to.equal(null);
+			callback();
+		}, function(callback) {
+			done();
+			callback();
+		}));
 
-    it('should emit error on streamed file', function (done) {
-        gulp.src(path.join('test/fixtures/1/css/dupasset.css'), { buffer: false })
-            .pipe(gulpUseCssUseRef())
-            .on('error', function (err) {
-                expect(err.message).to.equal('Streaming not supported');
-                done();
-            });
-    });
+		stream.write(new gutil.File({
+			path: 'null.css',
+			contents: null
+		 }));
 
-	it('should handle not having an options object', function(done) {
+		stream.end();
+	});
+
+	it('should emit error on streamed file', function(done) {
+		gulp.src(path.join('test/fixtures/1/css/dupasset.css'), { buffer: false })
+			.pipe(gulpUseCssUseRef())
+			.on('error', function (err) {
+				expect(err.message).to.equal('Streaming not supported');
+				done();
+			});
+	});
+
+	it('should pass the contents of asset files through unchanged', function(done) {
 		var files = [];
 
 		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
@@ -292,95 +328,216 @@ describe('gulp-use-css filter', function() {
 				files.push(file);
 				callback();
 			}, function(cb) {
-				expect(files).to.have.lengthOf(2);
-				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+				var cssFile = _.find(files, _.matches({relative: 'fonts\\asset1.eot'}));
 				expect(cssFile).to.not.be.undefined;
-	            expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+				expect(getExpected('test/fixtures/1/fonts/asset1.eot')).to.equal(cssFile.contents.toString());
 				done();
 				cb();
 			}));
 	});
 
-	it('should handle having an options object with a null base', function(done) {
-		var files = [];
+	describe('with an asset with ..\'s in it', function() {
+		it('should handle not having an options object', function(done) {
+			var files = [];
 
-		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
-			.pipe(gulpUseCssUseRef({ base: null }))
-			.pipe(through.obj(function(file, enc, callback) {
-				files.push(file);
-				callback();
-			}, function(cb) {
-				expect(files).to.have.lengthOf(2);
-				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
-				expect(cssFile).to.not.be.undefined;
-	            expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
-				done();
-				cb();
-			}));
+			gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+				.pipe(gulpUseCssUseRef())
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
+
+		it('should handle having an options object with a null base', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+				.pipe(gulpUseCssUseRef({ base: null }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
+
+		it('should handle having an options object with an empty string base', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+				.pipe(gulpUseCssUseRef({ base: '' }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
+
+		it('should handle having an options object with a base that has a single level directory', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+				.pipe(gulpUseCssUseRef({ base: 'foo' }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'foo\\fonts\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/onelevel.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
+
+		it('should handle having an options object with a base that has a 2 levels of directories', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
+				.pipe(gulpUseCssUseRef({ base: 'foo/bar' }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'foo\\bar\\fonts\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/twolevels.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
 	});
 
-	it('should handle having an options object with an empty string base', function(done) {
-		var files = [];
+	describe('with an asset without ..\'s in it', function() {
+		it('should handle not having an options object', function(done) {
+			var files = [];
 
-		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
-			.pipe(gulpUseCssUseRef({ base: '' }))
-			.pipe(through.obj(function(file, enc, callback) {
-				files.push(file);
-				callback();
-			}, function(cb) {
-				expect(files).to.have.lengthOf(2);
-				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
-				expect(cssFile).to.not.be.undefined;
-	            expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
-				done();
-				cb();
-			}));
-	});
+			gulp.src(path.normalize('test/fixtures/2/css/oneasset.css'), { base: 'test/fixtures/2' })
+				.pipe(gulpUseCssUseRef())
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'fonts\\Light\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nodots/nooptions.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
 
-	it('should handle having an options object with a base that has a single level directory', function(done) {
-		var files = [];
+		it('should handle having an options object with a null base', function(done) {
+			var files = [];
 
-		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
-			.pipe(gulpUseCssUseRef({ base: 'foo' }))
-			.pipe(through.obj(function(file, enc, callback) {
-				files.push(file);
-				callback();
-			}, function(cb) {
-				expect(files).to.have.lengthOf(2);
-				expect(files).to.contain.something.that.has.property('relative', 'foo\\fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
-				expect(cssFile).to.not.be.undefined;
-	            expect(getExpected('test/expected/onelevel.css')).to.equal(cssFile.contents.toString());
-				done();
-				cb();
-			}));
-	});
+			gulp.src(path.normalize('test/fixtures/2/css/oneasset.css'), { base: 'test/fixtures/2' })
+				.pipe(gulpUseCssUseRef({ base: null }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'fonts\\Light\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nodots/nooptions.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
 
-	it('should handle having an options object with a base that has a 2 levels of directories', function(done) {
-		var files = [];
+		it('should handle having an options object with an empty string base', function(done) {
+			var files = [];
 
-		gulp.src(path.normalize('test/fixtures/1/css/oneasset.css'), { base: 'test/fixtures/1' })
-			.pipe(gulpUseCssUseRef({ base: 'foo/bar' }))
-			.pipe(through.obj(function(file, enc, callback) {
-				files.push(file);
-				callback();
-			}, function(cb) {
-				expect(files).to.have.lengthOf(2);
-				expect(files).to.contain.something.that.has.property('relative', 'foo\\bar\\fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-				var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
-				expect(cssFile).to.not.be.undefined;
-	            expect(getExpected('test/expected/twolevels.css')).to.equal(cssFile.contents.toString());
-				done();
-				cb();
-			}));
+			gulp.src(path.normalize('test/fixtures/2/css/oneasset.css'), { base: 'test/fixtures/2' })
+				.pipe(gulpUseCssUseRef({ base: '' }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'fonts\\Light\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nodots/nooptions.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
+
+		it('should handle having an options object with a base that has a single level directory', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/2/css/oneasset.css'), { base: 'test/fixtures/2' })
+				.pipe(gulpUseCssUseRef({ base: 'foo' }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'foo\\fonts\\Light\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nodots/onelevel.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
+
+		it('should handle having an options object with a base that has a 2 levels of directories', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/2/css/oneasset.css'), { base: 'test/fixtures/2' })
+				.pipe(gulpUseCssUseRef({ base: 'foo/bar' }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(2);
+					expect(files).to.contain.something.that.has.property('relative', 'foo\\bar\\fonts\\Light\\asset1.eot');
+					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
+					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(cssFile).to.not.be.undefined;
+					expect(getExpected('test/expected/nodots/twolevels.css')).to.equal(cssFile.contents.toString());
+					done();
+					cb();
+				}));
+		});
 	});
 
 	it('shouldn\'t return duplicate assets', function(done) {
@@ -397,7 +554,7 @@ describe('gulp-use-css filter', function() {
 				expect(files).to.contain.something.that.has.property('relative', 'css\\dupasset.css');
 				var cssFile = _.find(files, _.matches({relative: 'css\\dupasset.css'}));
 				expect(cssFile).to.not.be.undefined;
-	            expect(getExpected('test/expected/dupasset.css')).to.equal(cssFile.contents.toString());
+				expect(getExpected('test/expected/dupasset.css')).to.equal(cssFile.contents.toString());
 				done();
 				cb();
 			}));

@@ -33,6 +33,7 @@
     "mocha": "*",
     "mocha-clean": "^1.0.0",
     "mockery": "github:pointsource/mockery",
+    "sinon": "^1.17.3",
     "through2": "^2.0.1"
   }
 }

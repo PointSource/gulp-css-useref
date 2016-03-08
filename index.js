@@ -14,7 +14,7 @@ module.exports = function(options) {
 	return through.obj(function(file, enc, cb) {
 		var files;
 
-		if (file.isNull())
+		if (file.isNull() || path.extname(file.relative) != '.css')
 			return cb(null, file);
 
 		if (file.isStream())

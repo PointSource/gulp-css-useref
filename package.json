@@ -20,9 +20,9 @@
   },
   "dependencies": {
     "gulp-util": "^3.0.7",
+    "lodash": "^4.6.1",
     "micromatch": "^2.3.7",
-    "through2": "^2.0.1",
-    "lodash": "^4.6.1"
+    "through2": "^2.0.1"
   },
   "repository": "PointSource/gulp-css-useref",
   "license": "MIT",

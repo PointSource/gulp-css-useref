@@ -88,12 +88,52 @@ var testData = [
 	},
 
 	{
-		it: 'should work with a blank base',
+		it: 'should work with a blank base with a CSS file 1 level deep and a URL 0 levels up',
 		args: [ 'fixtures\\01.css', 'fonts/font1.woff?a=123', { base: '' } ],
 		res: {
 			newUrl: 'url("../fonts/font1.woff?a=123")',
 			assetPath: 'fonts\\font1.woff',
 			newAssetFile: 'fonts\\font1.woff'
+		}
+	},
+
+	{
+		it: 'should work with a blank base with a CSS file 1 level deep and a URL 2 levels up',
+		args: ['app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: '' } ],
+		res: {
+			newUrl: 'url("../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: '..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
+		}
+	},
+
+	{
+		it: 'should work with a base with 1 dir and a CSS file 1 level deep and a URL 2 levels up',
+		args: ['app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: 'x' } ],
+		res: {
+			newUrl: 'url("../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: 'bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
+		}
+	},
+
+	{
+		it: 'should work with a base with 1 dir and a CSS file 2 levels deep and a URL 2 levels up',
+		args: ['src\\app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: 'x' } ],
+		res: {
+			newUrl: 'url("../../x/bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: 'x\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
+		}
+	},
+
+	{
+		it: 'should work with a blank base with a CSS file 2 levels deep and a URL 2 levels up',
+		args: ['src\\app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: '' } ],
+		res: {
+			newUrl: 'url("../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: 'bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
 		}
 	}
 ];

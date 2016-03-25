@@ -5,15 +5,19 @@
   "main": "index.js",
   "author": "Andre Asselin <andre.asselin@pointsource.com>",
   "contributors": [
-    "Andre Asselin <andre.asselin@pointsource.com>"
+    "Andre Asselin <andre.asselin@pointsource.com>",
+    "Jonathan Kemp <kempdogg@gmail.com> (http://jonkemp.com/)",
+    "Alex McHardy <amchardy@shutterstock.com>"
   ],
   "files": [
     "*"
   ],
   "keywords": [
     "gulpplugin",
+    "gulp",
     "css",
-    "fonts"
+    "fonts",
+    "assets"
   ],
   "scripts": {
     "test": "mocha"

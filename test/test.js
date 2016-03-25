@@ -98,32 +98,22 @@ var testData = [
 	},
 
 	{
-		it: 'should work with a blank base with a CSS file 1 level deep and a URL 2 levels up',
-		args: ['app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: '' } ],
-		res: {
-			newUrl: 'url("../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
-			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
-			newAssetFile: '..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
-		}
-	},
-
-	{
-		it: 'should work with a base with 1 dir and a CSS file 1 level deep and a URL 2 levels up',
-		args: ['app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: 'x' } ],
-		res: {
-			newUrl: 'url("../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
-			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
-			newAssetFile: 'bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
-		}
-	},
-
-	{
 		it: 'should work with a base with 1 dir and a CSS file 2 levels deep and a URL 2 levels up',
 		args: ['src\\app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: 'x' } ],
 		res: {
 			newUrl: 'url("../../x/bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
 			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
 			newAssetFile: 'x\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
+		}
+	},
+
+	{
+		it: 'should work with a blank base with a CSS file 1 level deep and a URL 1 level up',
+		args: ['app\\index.css', '../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: '' } ],
+		res: {
+			newUrl: 'url("../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: 'bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
 		}
 	},
 
@@ -139,8 +129,33 @@ var testData = [
 ];
 
 
-function generateTestData(sep) {
-	return testData.map(function(testItem) {
+// These 2 tests fail on Windows with path.posix.relative because internally, it uses process.cwd, which yields
+// something that it believes isn't an absolute path.  Run these 2 tests using native path.relative only.
+var nativeOnlyTestData = [
+	{
+		it: 'should work with a blank base with a CSS file 1 level deep and a URL 2 levels up',
+		args: ['app/index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: '' } ],
+		res: {
+			newUrl: 'url("../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: '..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
+		}
+	},
+
+	{
+		it: 'should work with a base with 1 dir and a CSS file 1 level deep and a URL 2 levels up',
+		args: ['app\\index.css', '../../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0', { base: 'x' } ],
+		res: {
+			newUrl: 'url("../bower_components/font-awesome/fonts/fontawesome-webfont.eot?v=4.5.0")',
+			assetPath: '..\\..\\bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot',
+			newAssetFile: 'bower_components\\font-awesome\\fonts\\fontawesome-webfont.eot'
+		}
+	}
+];
+
+
+function generateTestData(testCases, sep) {
+	return testCases.map(function(testItem) {
 		return {
 			it: testItem.it,
 			args: [ testItem.args[0].replace(/\\/g, sep), testItem.args[1], { base: testItem.args[2].base.replace(/\\/g, sep) } ],
@@ -166,7 +181,7 @@ describe('generateDirs()', function() {
 	describe('with OS local paths', function() {
 		var generateDirs;
 
-		var localTestData = generateTestData(path.sep);
+		var localTestData = generateTestData(testData, path.sep).concat(generateTestData(nativeOnlyTestData, path.sep))
 
 		before(function() {
 			mockery.registerAllowables(['url', '../generateDirs'], true);
@@ -211,7 +226,7 @@ describe('generateDirs()', function() {
 	describe('with posix paths', function() {
 		var generateDirs;
 
-		var localTestData = generateTestData(path.posix.sep);
+		var localTestData = generateTestData(testData, path.posix.sep);
 
 		before(function() {
 			mockery.registerAllowables(['url', '../generateDirs'], true);
@@ -240,7 +255,7 @@ describe('generateDirs()', function() {
 	describe('with win32 paths', function() {
 		var generateDirs;
 
-		var localTestData = generateTestData(path.win32.sep);
+		var localTestData = generateTestData(testData, path.win32.sep);
 
 		before(function() {
 			mockery.registerAllowables(['url', '../generateDirs'], true);

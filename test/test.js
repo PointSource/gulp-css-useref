@@ -154,15 +154,20 @@ var nativeOnlyTestData = [
 ];
 
 
+function fixBackslashesInPath(filePath, sep) {
+	return filePath.replace(/\\/g, sep);
+}
+
+
 function generateTestData(testCases, sep) {
 	return testCases.map(function(testItem) {
 		return {
 			it: testItem.it,
-			args: [ testItem.args[0].replace(/\\/g, sep), testItem.args[1], { base: testItem.args[2].base.replace(/\\/g, sep) } ],
+			args: [ fixBackslashesInPath(testItem.args[0], sep), testItem.args[1], { base: fixBackslashesInPath(testItem.args[2].base, sep) } ],
 			res: {
 				newUrl: testItem.res.newUrl,
-				assetPath: testItem.res.assetPath.replace(/\\/g, sep),
-				newAssetFile: testItem.res.newAssetFile.replace(/\\/g, sep)
+				assetPath: fixBackslashesInPath(testItem.res.assetPath, sep),
+				newAssetFile: fixBackslashesInPath(testItem.res.newAssetFile, sep)
 			}
 		};
 	});
@@ -201,12 +206,12 @@ describe('generateDirs()', function() {
 		});
 
 		it('should work with a pathTransform function', function() {
-			var incssFilePathReldirs = 'css\\page\\home.css';
+			var incssFilePathReldirs = fixBackslashesInPath('css\\page\\home.css', path.sep);
 			var inurlMatch = '../../images/foo.png?a=123';
 			var inoptions = {
 				base: 'assets',
 				pathTransform: function(newAssetFile, cssFilePathRel, urlMatch, options) {
-					expect(newAssetFile).to.equal('assets\\images\\foo.png');
+					expect(newAssetFile).to.equal(fixBackslashesInPath('assets\\images\\foo.png', path.sep));
 					expect(cssFilePathRel).to.equal(incssFilePathReldirs);
 					expect(urlMatch).to.equal(inurlMatch);
 					expect(options).to.eql(inoptions);
@@ -383,7 +388,7 @@ describe('gulp-use-css filter', function() {
 				files.push(file);
 				callback();
 			}, function(cb) {
-				var cssFile = _.find(files, _.matches({relative: 'fonts\\asset1.eot'}));
+				var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('fonts\\asset1.eot', path.sep)}));
 				expect(cssFile).to.not.be.undefined;
 				expect(getExpected('test/fixtures/1/fonts/asset1.eot')).to.equal(cssFile.contents.toString());
 				done();
@@ -402,9 +407,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -422,9 +427,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -442,9 +447,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nooptions.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -462,9 +467,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'foo\\fonts\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('foo\\fonts\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/onelevel.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -482,9 +487,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'foo\\bar\\fonts\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('foo\\bar\\fonts\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/twolevels.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -504,9 +509,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'fonts\\Light\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\Light\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nodots/nooptions.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -524,9 +529,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'fonts\\Light\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\Light\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nodots/nooptions.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -544,9 +549,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'fonts\\Light\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\Light\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nodots/nooptions.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -564,9 +569,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'foo\\fonts\\Light\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('foo\\fonts\\Light\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nodots/onelevel.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -584,9 +589,9 @@ describe('gulp-use-css filter', function() {
 					callback();
 				}, function(cb) {
 					expect(files).to.have.lengthOf(2);
-					expect(files).to.contain.something.that.has.property('relative', 'foo\\bar\\fonts\\Light\\asset1.eot');
-					expect(files).to.contain.something.that.has.property('relative', 'css\\oneasset.css');
-					var cssFile = _.find(files, _.matches({relative: 'css\\oneasset.css'}));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('foo\\bar\\fonts\\Light\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\oneasset.css', path.sep));
+					var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\oneasset.css', path.sep)}));
 					expect(cssFile).to.not.be.undefined;
 					expect(getExpected('test/expected/nodots/twolevels.css')).to.equal(cssFile.contents.toString());
 					done();
@@ -605,9 +610,9 @@ describe('gulp-use-css filter', function() {
 				callback();
 			}, function(cb) {
 				expect(files).to.have.lengthOf(2);
-				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\dupasset.css');
-				var cssFile = _.find(files, _.matches({relative: 'css\\dupasset.css'}));
+				expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.eot', path.sep));
+				expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\dupasset.css', path.sep));
+				var cssFile = _.find(files, _.matches({relative: fixBackslashesInPath('css\\dupasset.css', path.sep)}));
 				expect(cssFile).to.not.be.undefined;
 				expect(getExpected('test/expected/dupasset.css')).to.equal(cssFile.contents.toString());
 				done();
@@ -625,9 +630,9 @@ describe('gulp-use-css filter', function() {
 				callback();
 			}, function(cb) {
 				expect(files).to.have.lengthOf(3);
-				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.eot');
-				expect(files).to.contain.something.that.has.property('relative', 'fonts\\asset1.woff2');
-				expect(files).to.contain.something.that.has.property('relative', 'css\\multiassetmultiline.css');
+				expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.eot', path.sep));
+				expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.woff2', path.sep));
+				expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\multiassetmultiline.css', path.sep));
 				done();
 				cb();
 			}));

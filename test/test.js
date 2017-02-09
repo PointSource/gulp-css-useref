@@ -637,4 +637,25 @@ describe('gulp-use-css filter', function() {
 				cb();
 			}));
 	});
+
+	//
+	describe('with absolute assets from root', function() {
+		it('should handle assets from a user-defined webroot', function(done) {
+			var files = [];
+
+			gulp.src(path.normalize('test/fixtures/3/css/absoluterootasset.css'), { base: 'test/fixtures/3' })
+				.pipe(gulpUseCssUseRef({ setWebroot: path.resolve('test/fixtures/1') }))
+				.pipe(through.obj(function(file, enc, callback) {
+					files.push(file);
+					callback();
+				}, function(cb) {
+					expect(files).to.have.lengthOf(3);
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.eot', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('fonts\\asset1.woff2', path.sep));
+					expect(files).to.contain.something.that.has.property('relative', fixBackslashesInPath('css\\absoluterootasset.css', path.sep));
+					done();
+					cb();
+				}));
+		});
+	});
 });

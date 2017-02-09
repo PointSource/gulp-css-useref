@@ -65,8 +65,7 @@ function processUrlDecls(file, options) {
 			var urlMatch = trimUrlValue(urlMatch);
 
 			// Ignore absolute urls, data URIs, or hashes
-			if (urlMatch.indexOf('/') === 0 ||
-				urlMatch.indexOf('data:') === 0 ||
+			if (urlMatch.indexOf('data:') === 0 ||
 				urlMatch.indexOf('#') === 0 ||
 				/^[a-z]+:\/\//.test(urlMatch)) {
 				return fullMatch;
@@ -75,16 +74,26 @@ function processUrlDecls(file, options) {
 			if (options.match && !micromatch.isMatch(urlMatch, options.match))
 				return fullMatch;
 
-			var dirs = generateDirs(file.relative, urlMatch, options);
-			var newUrl = dirs.newUrl;
-			var assetPath = dirs.assetPath;
-			var newAssetFile = dirs.newAssetFile;
+			// Process absolute URLs if a webroot is set
+			var dirs, assetFromAbs;
 
-			var assetFromAbs = path.resolve(path.dirname(file.path), assetPath);
+			if (options.setWebroot) {
+				dirs = generateDirs("_", urlMatch, options)
+				assetFromAbs = dirs.assetPath;
+			}
+			else if (urlMatch.indexOf('/') === 0) {
+				return fullMatch;
+			}
+			else {
+				dirs = generateDirs(file.relative, urlMatch, options);
+				assetFromAbs = path.resolve(path.dirname(file.path), dirs.assetPath);
+			}
+
+			var newUrl = dirs.newUrl;
+			var newAssetFile = dirs.newAssetFile;
 
 			var cssBaseDirAbs = file.path.substr(0, file.path.length - file.relative.length);
 			var newAssetFileAbs = path.join(cssBaseDirAbs, newAssetFile);
-
 
 			var cssFromDirAbs = path.dirname(file.path);
 

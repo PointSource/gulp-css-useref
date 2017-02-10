@@ -34,6 +34,17 @@ function generateDirs(cssFilePathRel, urlMatch, options) {
 	//   urlMatch         = '../../images/foo.png?a=123'
 	//   options.base     = 'assets'
 
+	if (options.setWebroot) {
+		var assetAbsolutePath = url.parse(options.setWebroot + urlMatch).pathname;
+		var newAssetRelPath = path.join(options.base, url.parse(urlMatch.substring(1)).pathname);
+
+		return {
+			newUrl: urlMatch,
+			assetPath: assetAbsolutePath,
+			newAssetFile: newAssetRelPath
+		};
+	}
+
 	// 'css\page'
 	var cssFromDirRel = path.dirname(cssFilePathRel);
 	// assetUrlParsed.pathname = '../../images/foo.png'

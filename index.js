@@ -68,7 +68,7 @@ function processUrlDecls(file, options) {
 			if (urlMatch.indexOf('/') === 0 ||
 				urlMatch.indexOf('data:') === 0 ||
 				urlMatch.indexOf('#') === 0 ||
-				/^[a-z]+:\/\//.test(urlMatch)) {
+				/^[a-z-]+:\/\//.test(urlMatch)) {
 				return fullMatch;
 			}
 
